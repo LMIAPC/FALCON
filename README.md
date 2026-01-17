@@ -1,6 +1,6 @@
 # FALCON: Federated Learning Framework
 
-FALCON is a federated learning framework designed for medical image classification and other computer vision tasks. It implements a multi-stage training pipeline with feature encoding, local classifier training, synthetic data generation, and global model aggregation.
+We introduce FALCON, a framework that enhances the effectiveness of OSFL over non-IID image data. The core idea of FALCON is to leverage the feature-aware hierarchical token sequences generation and knowledge distillation into OSFL. First, each client leverages a pretrained visual encoder with hierarchical scale encoding to compress images into hierarchical token sequences, which capture multi-scale semantics. Second, a multi-scale autoregressive transformer generator is used to model the distribution of these token sequences and generate the synthetic sequences. Third, clients upload the synthetic sequences along with the local classifier trained on the real token sequences to the server. Finally, the server incorporates knowledge distillation into global training to reduce reliance on precise distribution modeling.
 
 ## Table of Contents
 
