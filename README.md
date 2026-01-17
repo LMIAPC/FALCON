@@ -36,7 +36,7 @@ pip install -r requirements.txt
 FALCON/
 ├── config.py                 # Configuration file for datasets, models, paths
 ├── dataset.py                # Dataset loading and preprocessing utilities
-├── utils.py                  # Helper functions for PyTorch
+├── utils.py                  # Helper functions
 ├── s1_enc.py                 # Stage 1: Feature encoding
 ├── s1.5_local_cls.py         # Stage 1.5: Local classifier training
 ├── s2_g.py                   # Stage 2: M-AR generator training
@@ -44,9 +44,9 @@ FALCON/
 ├── s3_global_training.py     # Stage 3: Global classifier training
 ├── test.py                   # Testing script
 ├── models/                   # Model definitions
-│   ├── encoders/            # Pretrained encoders (DINO, CLIP, etc.)
-│   ├── mar_generator.py     # Mixture-of-Autoregressive generator
-│   └── global_classifier.py # Global classifier model
+│   ├── encoders/             # Pretrained encoders (DINO, CLIP, etc.)
+│   ├── mar_generator.py      # Multi-scale Autoregressive (M-AR) generator
+│   └── global_classifier.py  # Global classifier model
 ├── dataset/                  # Raw dataset directory
 ├── dataset_preprocessed/     # Preprocessed dataset directory
 ├── feature/                  # Extracted features
@@ -178,7 +178,7 @@ python s1.5_local_cls.py --gpu 0
 
 ### Stage 2: M-AR Generator Training
 
-Train the Mixture-of-Autoregressive generator:
+Train the Multi-scale Autoregressive (M-AR) generator:
 
 ```bash
 python s2_g.py --gpus 0
