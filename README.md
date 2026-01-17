@@ -25,7 +25,7 @@ FALCON is a federated learning framework designed for medical image classificati
 ### Setup
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/LMIAPC/FALCON.git
 cd FALCON
 pip install -r requirements.txt
 ```
