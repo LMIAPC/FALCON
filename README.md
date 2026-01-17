@@ -91,11 +91,11 @@ The framework expects datasets to be organized in a specific hierarchical struct
 
 #### Format Specifications
 
-- **${DATASET_NAME}**: Name of the dataset (e.g., `OfficeHome`, `PACS`, `ChestDR`, `DR`)
-- **${SITE_ID}**: Site/Client identifier (e.g., `Client0`, `Client1`, `Client2`, or domain names like `Art`, `Clipart`)
-- **${CLASS_ID}**: Zero-based numeric class index (e.g., `0`, `1`, `2`)
-- **${CLASS_NAME}**: Descriptive class name (e.g., `others`, `nodule`, `Alarm_Clock`)
-- **image_001.png**: Image files in common formats (`.png`, `.jpg`, `.jpeg`, etc.)
+- **${DATASET_NAME}**: Name of the dataset (e.g., `OfficeHome`, `PACS`, `ChestDR`, `DR`), which you should register them in the `config.py` file.
+- **${SITE_ID}**: Site/Client identifier (e.g., `Client0`, `Client1`, `Client2`, or domain names like `Art`, `Clipart`), which you should register them in the `config.py` file.
+- **${CLASS_ID}**: Zero-based numeric class index (e.g., `0`, `1`, `2`).
+- **${CLASS_NAME}**: Descriptive class name (e.g., `others`, `nodule`, `Alarm_Clock`), which can be parsed automatically.
+- **image_001.png**: Image files in common formats (`.png`, `.jpg`, `.jpeg`, etc.), which can be any name you like.
 
 #### Example
 
@@ -167,18 +167,6 @@ ENCODER = {
 }
 ```
 
-### Model Configuration
-
-```python
-MODEL_CONFIG = {
-    'feature_dim': 768,
-    'patch_split_n': 1,  # Number of patch splits (0 = no patching)
-    'stage1': {'learning_rate': 1e-4, 'prior_weight': 1.0},
-    'stage2': {'epochs': 500, 'learning_rate': 1e-4, 'num_mixtures': 20},
-    'stage3': {'epochs': 60, 'batch_size': 512, 'learning_rate': 5e-4},
-}
-```
-
 ## Usage
 
 ### Stage 1: Feature Encoding
@@ -186,7 +174,7 @@ MODEL_CONFIG = {
 Extract features from images using pretrained encoders:
 
 ```bash
-python s1_enc.py --gpus 0,1,2
+python s1_enc.py --gpus 0
 ```
 
 ### Stage 1.5: Local Classifier Training
@@ -202,7 +190,7 @@ python s1.5_local_cls.py --gpu 0
 Train the Mixture-of-Autoregressive generator:
 
 ```bash
-python s2_g.py --gpus 0,1,2
+python s2_g.py --gpus 0
 ```
 
 ### Stage 2.5: Synthetic Data Sampling
@@ -210,7 +198,7 @@ python s2_g.py --gpus 0,1,2
 Generate synthetic features:
 
 ```bash
-python s2.5_sample.py --gpus 0,1,2
+python s2.5_sample.py --gpus 0
 ```
 
 ### Stage 3: Global Classifier Training
