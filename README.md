@@ -131,15 +131,6 @@ dataset_preprocessed/
         └── ... (same structure)
 ```
 
-#### Important Notes
-
-1. **Class Index Prefix**: Each class folder must start with a numeric index followed by an underscore (`_`), e.g., `0_class_name`, `1_class_name`, etc.
-2. **Consistent Class Order**: All clients must have the same class indices and names in the same order.
-3. **Splits**: The framework supports `train`, `val`, and `test` splits. At minimum, `train` split is required.
-4. **Multiple Clients**: The number of clients can vary depending on the dataset and federated learning setup.
-5. **Image Formats**: Supported image formats include `.png`, `.jpg`, `.jpeg`, `.bmp`, etc.
-6. **Resolution**: Images are automatically resized to the resolution specified in the configuration (e.g., 224×224, 448×448).
-
 ## Configuration
 
 The `config.py` file contains all configuration parameters:
@@ -223,8 +214,8 @@ The FALCON framework follows a multi-stage training pipeline:
 
 1. **Stage 1 - Feature Encoding**: Extract features from raw images using pretrained vision encoders (DINO, CLIP, etc.)
 2. **Stage 1.5 - Local Classifier Training**: Train local classifiers on each client's real features
-3. **Stage 2 - M-AR Generator Training**: Train a Mixture-of-Autoregressive generator to model feature distributions
-4. **Stage 2.5 - Synthetic Data Sampling**: Generate synthetic features to augment training data
+3. **Stage 2 - M-AR Generator Training**: Train a M-AR generator to model feature distributions
+4. **Stage 2.5 - Synthetic Data Sampling**: Generate synthetic features for global training
 5. **Stage 3 - Global Classifier Training**: Train a global classifier using both real and synthetic features with knowledge distillation
 
 ## Citation
