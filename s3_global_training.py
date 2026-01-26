@@ -255,7 +255,9 @@ def run_on_dataset(ds_name, args, device, seed):
     log_path = config.PATHS['logs'](ds_name, stage=3)
     logger = setup_logger(log_path)
     logger.info("\n" + "=" * 80)
-    logger.info(f"Stage3 | Dataset={ds_name} | KD={'ON' if args.distill else 'OFF'} | AttentionPooling={config.MODEL_CONFIG['aggregation']['method']} | Patch_n={config.MODEL_CONFIG['patch_split_n']}")
+    patch_window = tuple(config.MODEL_CONFIG.get('patch_window', (224, 224)))
+    patch_stride = tuple(config.MODEL_CONFIG.get('patch_stride', (224, 224)))
+    logger.info(f"Stage3 | Dataset={ds_name} | KD={'ON' if args.distill else 'OFF'} | AttentionPooling={config.MODEL_CONFIG['aggregation']['method']} | Patch_window={patch_window} | Patch_stride={patch_stride}")
 
     cids = list(range(len(config.DATASETS[ds_name]['clients'])))
     logger.info(f"Using all clients: {cids}")

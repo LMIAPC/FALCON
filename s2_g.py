@@ -44,6 +44,7 @@ from typing import List, Tuple
 
 import config
 from models.mar_generator import MDNGenerator
+from models.encoders.utils import sliding_window_count
 
 
 # ───────────────── Utility Functions ────────────────── #
@@ -96,10 +97,10 @@ def train_client(
     feature_dim = config.MODEL_CONFIG['feature_dim']
 
     # ───── Calculate number of proxies N2 ─────
-    n = (config.MODEL_PATCHING.get('patch_split_n')
-         if hasattr(config, 'MODEL_PATCHING') and 'patch_split_n' in config.MODEL_PATCHING
-         else config.MODEL_CONFIG.get('proxy_grid', 0))
-    N2 = (n + 1) * (n + 1)
+    patch_window = tuple(config.MODEL_PATCHING.get('patch_window', (224, 224)))
+    patch_stride = tuple(config.MODEL_PATCHING.get('patch_stride', (224, 224)))
+    resolution = config.DATASETS[dataset]['resolution']
+    N2 = sliding_window_count(resolution, resolution, patch_window, patch_stride)
 
     # ───── Construct global proxy / structured proxy ─────
     global_proxy = X[:, 0, :].unsqueeze(1)

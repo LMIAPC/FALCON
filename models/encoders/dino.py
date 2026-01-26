@@ -1,10 +1,10 @@
 # models/encoders/dino.py
 # -*- coding: utf-8 -*-
 import os
-import torch, torch.nn as nn
+import torch
 from transformers import AutoImageProcessor, AutoModel
 from .base import BaseEncoder, register_encoder
-from .utils import split_uniform_patches
+from .utils import split_sliding_patches
 
 # Mapping between model names and HuggingFace hub IDs
 DINO_MAP = {
@@ -20,7 +20,8 @@ class FrozenDINO(BaseEncoder):
     def __init__(self,
                  hub_id: str,
                  local_path: str,
-                 patch_split_n: int,
+                 patch_window: tuple[int, int],
+                 patch_stride: tuple[int, int],
                  feature_dim: int):
         super().__init__()
         # Use local files if available, otherwise download from hub
@@ -36,7 +37,8 @@ class FrozenDINO(BaseEncoder):
         )
         self.backbone.eval().requires_grad_(False)
 
-        self.patch_split_n = patch_split_n
+        self.patch_window = patch_window
+        self.patch_stride = patch_stride
         self.feature_dim = feature_dim
 
     @classmethod
@@ -53,8 +55,8 @@ class FrozenDINO(BaseEncoder):
         # PATHS['pretrained_model'] accepts parameter m (e.g. 'dino_base')
         local_path = paths['pretrained_model'](enc_type)
 
-        # 3. Get patch_split_n from MODEL_CONFIG
-        patch_n = model_cfg.get('patch_split_n', 0)
+        patch_window = tuple(model_cfg.get('patch_window', (224, 224)))
+        patch_stride = tuple(model_cfg.get('patch_stride', (224, 224)))
 
         # 4. Get hub_id from DINO_MAP
         hub_id = DINO_MAP[enc_type]
@@ -62,7 +64,8 @@ class FrozenDINO(BaseEncoder):
         return cls(
             hub_id=hub_id,
             local_path=local_path,
-            patch_split_n=patch_n,
+            patch_window=patch_window,
+            patch_stride=patch_stride,
             feature_dim=feat_dim
         )
 
@@ -70,10 +73,8 @@ class FrozenDINO(BaseEncoder):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Normalize input tensor
         x = (x * 255.0 + 128.0).clamp(0, 255) / 255.0
-        n, B, _, H, W = self.patch_split_n, *x.shape
-        
-        # Split into patches
-        patches = split_uniform_patches(x, n, (H, W))
+        B, _, H, W = x.shape
+        patches = split_sliding_patches(x, self.patch_window, self.patch_stride)
         flat = torch.cat(patches, 0)
         
         # Process input
@@ -81,8 +82,8 @@ class FrozenDINO(BaseEncoder):
         inp = {k: v.to(x.device) for k, v in inp.items()}
         
         # Get features
-        cls_flat = self.backbone(**inp).last_hidden_state[:, 0]  # (B*(1+(1+n)^2), D)
-        N = 1 if n == 0 else 1 + (n + 1) ** 2
+        cls_flat = self.backbone(**inp).last_hidden_state[:, 0]
+        N = len(patches)
         
         # Reshape output
-        return cls_flat.view(N, B, self.feature_dim).permute(1, 0, 2)  # (B, N, D)
+        return cls_flat.view(N, B, self.feature_dim).permute(1, 0, 2)

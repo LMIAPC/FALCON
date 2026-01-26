@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-import os, torch, torch.nn as nn
+import os, torch
 from transformers import CLIPModel, CLIPImageProcessor
 from .base import BaseEncoder, register_encoder
-from .utils import split_uniform_patches
+from .utils import split_sliding_patches
 
 CLIP_MAP = {
     "clip_b16": "openai/clip-vit-base-patch16",
@@ -13,7 +13,7 @@ CLIP_MAP = {
 @register_encoder("clip_b16")
 @register_encoder("clip_l14")
 class FrozenCLIP(BaseEncoder):
-    def __init__(self, hub_id, local_path, patch_n, feat_dim):
+    def __init__(self, hub_id, local_path, patch_window, patch_stride, feat_dim):
         super().__init__()
         local_kwargs = {"local_files_only": True} if os.path.isdir(local_path) else {}
         src = local_path if local_kwargs else hub_id
@@ -28,7 +28,8 @@ class FrozenCLIP(BaseEncoder):
         self.backbone.eval().requires_grad_(False)
         self.visual_projection.eval().requires_grad_(False)
 
-        self.patch_split_n = patch_n
+        self.patch_window = patch_window
+        self.patch_stride = patch_stride
         self.feature_dim   = feat_dim
 
     # factory
@@ -38,17 +39,16 @@ class FrozenCLIP(BaseEncoder):
         hub_id   = CLIP_MAP[typ]
         loc_path = paths["pretrained_model"](typ)
         dim      = encoder_cfg["dims"][typ]
-        patch_n  = model_cfg.get("patch_split_n", 0)
-        return cls(hub_id, loc_path, patch_n, dim)
+        patch_window = tuple(model_cfg.get("patch_window", (224, 224)))
+        patch_stride = tuple(model_cfg.get("patch_stride", (224, 224)))
+        return cls(hub_id, loc_path, patch_window, patch_stride, dim)
 
     # forward
     @torch.no_grad()
     def forward(self, x):
         x = (x * 255.0 + 128.0).clamp(0, 255) / 255.0
-        n, B, C, H, W = self.patch_split_n, *x.shape
-        patches = split_uniform_patches(x, n, (H, W))
-        # # resize to 224x224
-        # patches = [nn.functional.interpolate(p, size=224) for p in patches]
+        B, C, H, W = x.shape
+        patches = split_sliding_patches(x, self.patch_window, self.patch_stride)
         flat    = torch.cat(patches, 0)
         inp     = self.proc(images=list(flat), return_tensors="pt", do_rescale=False)
         inp     = {k: v.to(x.device) for k, v in inp.items()}
@@ -61,7 +61,7 @@ class FrozenCLIP(BaseEncoder):
         # Apply the visual projection layer to get the final embeddings
         cls_flat = self.visual_projection(pooled_output) # Shape: (effective_batch_size, 512 for ViT-B/16)
         
-        N = 1 if n == 0 else 1 + (n + 1) ** 2
+        N = len(patches)
         # Now cls_flat has num_elements = effective_batch_size * 512
         # And N * B * self.feature_dim = effective_batch_size * 512, so view will work
         return cls_flat.view(N, B, self.feature_dim).permute(1, 0, 2)

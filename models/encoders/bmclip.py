@@ -3,11 +3,11 @@ from PIL import Image
 from open_clip import create_model_and_transforms
 from open_clip.factory import _MODEL_CONFIGS
 from .base import BaseEncoder, register_encoder
-from .utils import split_uniform_patches
+from .utils import split_sliding_patches
 
 @register_encoder("bmclip_b16")
 class FrozenBMCLIP(BaseEncoder):
-    def __init__(self, local_path: str, patch_n: int, feature_dim: int):
+    def __init__(self, local_path: str, patch_window: tuple[int, int], patch_stride: tuple[int, int], feature_dim: int):
         super().__init__()
 
         model_bin = os.path.join(local_path, "open_clip_pytorch_model.bin")
@@ -55,7 +55,8 @@ class FrozenBMCLIP(BaseEncoder):
 
         self.visual = model.visual
         self.preprocess = preprocess
-        self.patch_split_n = patch_n
+        self.patch_window = patch_window
+        self.patch_stride = patch_stride
         self.feature_dim = feature_dim
         self.visual.eval().requires_grad_(False)
 
@@ -64,18 +65,16 @@ class FrozenBMCLIP(BaseEncoder):
         typ = encoder_cfg["type"]
         loc = paths["pretrained_model"](typ)
         dim = encoder_cfg["dims"][typ]
-        patch_n = model_cfg.get("patch_split_n", 0)
-        return cls(loc, patch_n, dim)
+        patch_window = tuple(model_cfg.get("patch_window", (224, 224)))
+        patch_stride = tuple(model_cfg.get("patch_stride", (224, 224)))
+        return cls(loc, patch_window, patch_stride, dim)
 
     @torch.no_grad()
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, _, H, W = x.shape
-        n = self.patch_split_n
-        N = 1 if n == 0 else 1 + (n + 1) ** 2
-
         x_float = (x * 0.5 + 0.5).clamp(0, 1)
-        patches = split_uniform_patches(x_float, n, (224, 224))
+        patches = split_sliding_patches(x_float, self.patch_window, self.patch_stride)
         flat = torch.cat(patches, 0)
+        N = len(patches)
 
         # Must convert to PIL images
         pil_imgs = [Image.fromarray((img.permute(1,2,0).cpu().numpy() * 255).astype('uint8')) 

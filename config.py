@@ -47,10 +47,11 @@ ENCODER = {
 # ───────────────────────────────────────────────────────────────────
 # Patch Splitting & Aggregation
 # ───────────────────────────────────────────────────────────────────
-# patch_split_n = 0 disables patching; otherwise (1+n)^2 patches are extracted
+# patch_window/patch_stride control sliding window extraction
 # ───────────────────────────────────────────────────────────────────
 MODEL_PATCHING = {
-    'patch_split_n': 1,
+    'patch_window': (224, 224),
+    'patch_stride': (224, 224),
     'aggregation': {
         'method': 'query',           # Options: 'query' | 'cross' | 'mean'
         'use_residual': True,        # ✅ Only effective for 'query' mode; 'cross' always uses residual add-back
@@ -74,8 +75,11 @@ MODEL_CONFIG = {
 # ───────────────────────────────────────────────────────────────────
 # Path configuration
 # ───────────────────────────────────────────────────────────────────
-# Feature tag ensures uniqueness of directory by encoder type and patch_n
-FEATURE_TAG = f"{ENCODER['type']}_n{MODEL_PATCHING['patch_split_n']}"
+# Feature tag ensures uniqueness of directory by encoder type and patching
+FEATURE_TAG = (
+    f"{ENCODER['type']}_w{MODEL_PATCHING['patch_window'][0]}x{MODEL_PATCHING['patch_window'][1]}"
+    f"_s{MODEL_PATCHING['patch_stride'][0]}x{MODEL_PATCHING['patch_stride'][1]}"
+)
 
 PATHS = {
     # Raw and preprocessed data

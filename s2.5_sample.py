@@ -28,6 +28,7 @@ import torch
 import torch.nn.functional as F
 
 from models.mar_generator import MDNGenerator
+from models.encoders.utils import sliding_window_count
 import config
 
 # ────────────────────────── Helpers ──────────────────────────
@@ -60,8 +61,8 @@ def prepare_generator(dataset: str, cid: int, device: torch.device) -> MDNGenera
     """Initialize and load MDN generator model"""
     num_classes = config.DATASETS[dataset]['num_classes']
     feature_dim = config.MODEL_CONFIG['feature_dim']
-    split_n = getattr(config, 'MODEL_PATCHING', {}).get(
-        'patch_split_n', config.MODEL_CONFIG.get('proxy_grid', 0))
+    patch_window = tuple(getattr(config, 'MODEL_PATCHING', {}).get('patch_window', (224, 224)))
+    patch_stride = tuple(getattr(config, 'MODEL_PATCHING', {}).get('patch_stride', (224, 224)))
     
     gen = MDNGenerator(
         cond_dim=num_classes,
@@ -76,7 +77,8 @@ def prepare_generator(dataset: str, cid: int, device: torch.device) -> MDNGenera
     wpath = Path(config.PATHS['local_fgenerator_weights'](dataset, cid)) / 'best_fgenerator.pth'
     gen.load_state_dict(torch.load(wpath, map_location=device), strict=True)
     gen.eval()
-    gen.proxy_n = split_n + 1
+    resolution = config.DATASETS[dataset]['resolution']
+    gen.proxy_n = sliding_window_count(resolution, resolution, patch_window, patch_stride) + 1
     return gen
 
 @torch.no_grad()
